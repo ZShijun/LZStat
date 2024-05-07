@@ -3,7 +3,6 @@
 namespace TypechoPlugin\LZStat;
 
 use Typecho\Common;
-use Typecho\Cookie;
 use Typecho\Date;
 use Typecho\Db;
 use Typecho\Plugin\PluginInterface;
@@ -105,38 +104,8 @@ class Plugin implements PluginInterface
     public static function addViews($archive)
     {
         if ($archive->is('post') || $archive->is('page')) {
-            self::incStatField($archive->cid, 'viewsNum');
+            Action::updateViews($archive->cid);
         }
-    }
-
-    /**
-     * 对统计字段进行自增
-     * 
-     * @param int $cid 文档ID
-     * @param string $fieldName 字段名
-     * @return int 自增后的值
-     */
-    public static function incStatField(string $cid, string $fieldName)
-    {
-        if (!in_array($fieldName, ['viewsNum', 'likesNum'])) {
-            return 0;
-        }
-
-        $key = '__stat';
-        $stat = json_decode(Cookie::get($key, '[]'), true);
-        if (isset($stat[$fieldName]) && array_key_exists("{$cid}", $stat[$fieldName])) {
-            return $stat[$fieldName]["{$cid}"];
-        }
-
-        $db = Db::get();
-        $tableName = $db->getPrefix() . 'contents';
-        $sql = "UPDATE $tableName SET $fieldName = $fieldName + 1 WHERE cid = $cid";
-        $db->query($sql);
-
-        $result = $db->fetchRow($db->select($fieldName)->from($tableName)->where('cid = ?', $cid));
-        $stat[$fieldName]["{$cid}"] = $result[$fieldName];
-        Cookie::set($key, json_encode($stat), strtotime('tomorrow'));
-        return $result[$fieldName];
     }
 
     public static function selectHandler(Archive $archive)
@@ -189,12 +158,18 @@ class Plugin implements PluginInterface
         }
         echo <<<EOF
         <script>
-            function stat(type){
+            function stat(type) {
+                let delay = false;
                 const sets = document.querySelectorAll('.set-' + type);
                 if (sets.length > 0) {                
                     sets.forEach(function (item) {
-                        item.addEventListener('click', function (e) {
-                            e.stopPropagation();
+                        item.addEventListener('click', function (event) {
+                            event.stopPropagation();
+                            if (delay) {  
+                                event.preventDefault();
+                                return;  
+                            }  
+                            delay = true;
                             const cid = item.dataset.cid;
                             axios.get('/action/stat?do=' + type + '&cid='+cid)
                             .then(function (response) {
@@ -205,6 +180,9 @@ class Plugin implements PluginInterface
                             })
                             .catch(function (error) {
                                 console.log(error);
+                            })
+                            .finally(function () {
+                                delay = false;
                             });
                         });
                     });
