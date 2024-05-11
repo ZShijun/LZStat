@@ -21,7 +21,7 @@ use Widget\User;
  * @package LZStat 
  * @author laozhu
  * @version 1.0.0
- * @link https://ilaozhu.com
+ * @link https://ilaozhu.com/archives/2068/
  */
 class Plugin implements PluginInterface
 {
