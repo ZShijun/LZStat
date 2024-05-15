@@ -20,7 +20,7 @@ use Widget\User;
  * 
  * @package LZStat 
  * @author laozhu
- * @version 1.0.0
+ * @version 1.1.0
  * @link https://ilaozhu.com/archives/2068/
  */
 class Plugin implements PluginInterface
@@ -90,6 +90,18 @@ class Plugin implements PluginInterface
             _t('文章列表会根据选中的方式降序排序，其中，权重计算规则是：点赞量*100 + 浏览量')
         );
         $form->addInput($orderBy);
+
+        $showText = new Radio(
+            'showText',
+            [
+                0    => _t('否'),
+                1    => _t('是')
+            ],
+            1,
+            _t('显示正文'),
+            _t('如果文章列表中需要显示文章正文，请选择是，否则请选择否')
+        );
+        $form->addInput($showText);
     }
 
     /**
@@ -111,10 +123,10 @@ class Plugin implements PluginInterface
     public static function selectHandler(Archive $archive)
     {
         $user = Widget::widget(User::class);
-        $select = $archive
-            ->select('table.contents.*', '(likesNum * 100 + viewsNum) AS weight')
-            ->from('table.contents');
+        $plugin = Widget::widget(Options::class)->plugin('LZStat');
         if ('post' == $archive->parameter->type || 'page' == $archive->parameter->type) {
+            $select = $archive->select('table.contents.*', '(likesNum * 100 + viewsNum) AS weight')
+                ->from('table.contents');
             if ($user->hasLogin()) {
                 $select->where(
                     'table.contents.status = ? OR table.contents.status = ? 
@@ -132,6 +144,32 @@ class Plugin implements PluginInterface
                 );
             }
         } else {
+            if ($plugin->showText) {
+                $select = $archive->select('table.contents.*', '(likesNum * 100 + viewsNum) AS weight');
+            } else {
+                $select = $archive->select(
+                    'table.contents.cid',
+                    'table.contents.title',
+                    'table.contents.slug',
+                    'table.contents.created',
+                    'table.contents.modified',
+                    'table.contents.type',
+                    'table.contents.status',
+                    'table.contents.commentsNum',
+                    'table.contents.allowComment',
+                    'table.contents.allowPing',
+                    'table.contents.allowFeed',
+                    'table.contents.template',
+                    'table.contents.password',
+                    'table.contents.authorId',
+                    'table.contents.parent',
+                    'table.contents.viewsNum',
+                    'table.contents.likesNum',
+                    '(table.contents.likesNum * 100 + table.contents.viewsNum) AS weight'
+                );
+            }
+
+            $select->from('table.contents');
             if ($user->hasLogin()) {
                 $select->where(
                     'table.contents.status = ? OR (table.contents.status = ? AND table.contents.authorId = ?)',
@@ -144,9 +182,8 @@ class Plugin implements PluginInterface
             }
         }
 
-        $orderBy = Widget::widget(Options::class)->plugin('LZStat')->orderBy;
         $select->where('table.contents.created < ?', Date::time())
-            ->order($orderBy, Db::SORT_DESC);
+            ->order($plugin->orderBy, Db::SORT_DESC);
         return $select;
     }
 
@@ -194,6 +231,7 @@ class Plugin implements PluginInterface
         </script>
         EOF;
     }
+
     /**
      * 确保统计字段在数据表中
      * 
