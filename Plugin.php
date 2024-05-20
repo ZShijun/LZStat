@@ -20,7 +20,7 @@ use Widget\User;
  * 
  * @package LZStat 
  * @author laozhu
- * @version 1.1.0
+ * @version 1.1.1
  * @link https://ilaozhu.com/archives/2068/
  */
 class Plugin implements PluginInterface
@@ -195,39 +195,38 @@ class Plugin implements PluginInterface
         }
         echo <<<EOF
         <script>
-            function stat(type) {
-                let delay = false;
-                const sets = document.querySelectorAll('.set-' + type);
-                if (sets.length > 0) {                
-                    sets.forEach(function (item) {
-                        item.addEventListener('click', function (event) {
-                            event.stopPropagation();
-                            if (delay) {  
-                                event.preventDefault();
-                                return;  
-                            }  
-                            delay = true;
-                            const cid = item.dataset.cid;
-                            axios.get('/action/stat?do=' + type + '&cid='+cid)
-                            .then(function (response) {
-                                const gets = document.querySelector('.get-' + type + '[data-cid="'+cid+'"]');
-                                if (gets) {
-                                    gets.textContent = response.data.total;
-                                }
-                            })
-                            .catch(function (error) {
-                                console.log(error);
-                            })
-                            .finally(function () {
-                                delay = false;
-                            });
-                        });
-                    });
-                }
-            }
+            let delay = false;
+            document.addEventListener('click', function (e) {
+                statHandler(e, 'views');
+                statHandler(e, 'likes');
+            }, true);
 
-            stat('views');
-            stat('likes');
+            function statHandler(event, type) {
+                if (!event.target.classList.contains('set-' + type)) {
+                    return;
+                }
+                event.stopPropagation();
+                if (delay) {  
+                    event.preventDefault();
+                    return;  
+                }  
+
+                delay = true;
+                const cid = event.target.dataset.cid;
+                axios.get('/action/stat?do=' + type + '&cid='+cid)
+                .then(function (response) {
+                    const gets = document.querySelector('.get-' + type + '[data-cid="'+cid+'"]');
+                    if (gets) {
+                        gets.textContent = response.data.total;
+                    }
+                })
+                .catch(function (error) {
+                    console.log(error);
+                })
+                .finally(function () {
+                    delay = false;
+                });
+            }
         </script>
         EOF;
     }
