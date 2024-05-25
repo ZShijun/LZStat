@@ -20,7 +20,7 @@ use Widget\User;
  * 
  * @package LZStat 
  * @author laozhu
- * @version 1.1.1
+ * @version 1.2.0
  * @link https://ilaozhu.com/archives/2068/
  */
 class Plugin implements PluginInterface
@@ -76,7 +76,7 @@ class Plugin implements PluginInterface
         );
         $form->addInput($requireAxios);
 
-        /** 排序 */
+        /** 文章列表排序 */
         $orderBy = new Radio(
             'orderBy',
             [
@@ -90,6 +90,21 @@ class Plugin implements PluginInterface
             _t('文章列表会根据选中的方式降序排序，其中，权重计算规则是：点赞量*100 + 浏览量')
         );
         $form->addInput($orderBy);
+
+        /** 侧边栏榜单文章排序 */
+        $topOrder = new Radio(
+            'topOrder',
+            [
+                'created'    => _t('创建时间'),
+                'viewsNum'    => _t('浏览量'),
+                'likesNum'    => _t('点赞量'),
+                'weight'     => _t('加权排序')
+            ],
+            'created',
+            _t('榜单文章'),
+            _t('设置侧边栏文章榜单排序方式，规则同上')
+        );
+        $form->addInput($topOrder);
 
         $showText = new Radio(
             'showText',
@@ -229,6 +244,30 @@ class Plugin implements PluginInterface
             }
         </script>
         EOF;
+    }
+
+    /**
+     * 获取榜单
+     * @param string $orderBy 排序方式(created,viewsNum,likesNum,weight)，为空则根据配置排序
+     */
+    public static function getRank(string $orderBy = null)
+    {
+        if (!$orderBy) {
+            $plugin = Widget::widget(Options::class)->plugin('LZStat');
+            $orderBy = $plugin->topOrder;
+        }
+
+        if ($orderBy == 'created') {
+            $title = _t('最新文章');
+        } else {
+            $title = _t('热门文章');
+        }
+
+        Rank::alloc(['orderBy' => $orderBy])->to($posts);
+        return [
+            'title' => $title,
+            'posts' => $posts
+        ];
     }
 
     /**
