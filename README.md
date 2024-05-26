@@ -11,10 +11,11 @@
 - 实现浏览量、点赞量当天不重复计算
 - 支持点赞在当天取消
 - 实现防抖策略，避免多次重复提交
+- 实现榜单查询功能
 
 ## 插件安装
 
-1. 下载[LZStat](https://github.com/ZShijun/LZStat)，解压到 `usr/plugins/` 目录下，将文件夹命名为 `LZStat`，确保`Plugin.php`文件直接在`LZStat`文件夹下；
+1. 下载 [LZStat](https://github.com/ZShijun/LZStat) ，解压到 `usr/plugins/` 目录下，将文件夹命名为 `LZStat`，确保`Plugin.php`文件直接在`LZStat`文件夹下；
 2. 登录博客后台，进入`控制台`->`插件`，选择`LZStat`插件；
 3. `启用`插件即可。
 
@@ -63,6 +64,15 @@
 
 当然，如果你点错了或者后悔了，再次点击，就会取消点赞，即点赞数减一。
 
+你也可以在自己的`css`文件中加入如下样式，以实现鼠标悬停的效果（因为每个人想要的效果可能不一样，所以该样式没有内置到插件中）。
+
+```css
+.set-likes:hover {
+  cursor: pointer;
+  color: #dc3545;
+}
+```
+
 如果你希望`点赞`完成后，点赞量在当前页面无刷新的更新，则需要在显示点赞量的标签上加上`get-likes`类和`data-cid`属性，示例代码如下：
 
 ```php
@@ -72,6 +82,27 @@
 ### 3. 自定义排序
 
 文章列表默认按照`创建时间`降序排序，但你可以通过修改插件的设置，实现按`创建时间`、`浏览量`、`点赞量`、`权重`(`点赞量 * 100 + 浏览量`)等更多形式的排序。例如，本文中提到的 [导航网站](https://nav.ilaozhu.com/) 就是按照`权重`排序的。
+
+### 4. 榜单查询
+
+你也可以手动根据`创建时间`、`浏览量`、`点赞量`、`权重`排序，查询前`N`条数据，主要用于侧边栏的`最新文章`、`热门文章`等功能，调用示例如下：
+
+```php
+<?php $rank = \TypechoPlugin\LZStat\Plugin::getRank(); ?>
+<h3><?= $rank["title"]; ?></h3>
+<?php if (empty($rank["posts"])) : ?>
+    <div>暂无数据</div>
+<?php else : ?>
+    <div>
+    <?php $posts = $rank["posts"];
+    while ($posts->next()) : ?>
+        <a href="<?php $posts->permalink() ?>"><?php $posts->title() ?></a>
+    <?php endwhile; ?>
+    </div>
+<?php endif; ?>
+```
+
+查询类型可以通过插件设置，也可以通过参数传递，查询条数通过博客控制台的 **设置->阅读->文章列表数目** 指定。考虑到每个人想要的显示效果不同，该功能只提供了数据查询接口，界面渲染需要自己写代码实现。
 
 ## 统计接口
 
@@ -87,6 +118,7 @@
 本插件目前已在以下主题中测试通过：
 
 - [BeaconNav](https://github.com/ZShijun/BeaconNav)
+- [WaterDrop](https://github.com/ZShijun/WaterDrop)
 
 你可以转到主题源码，查看具体用法，后续还会尝试让其适配更多类型的主题，以实现更通用、易用的目的！
 
