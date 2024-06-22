@@ -20,7 +20,7 @@ use Widget\User;
  * 
  * @package LZStat 
  * @author laozhu
- * @version 1.2.0
+ * @version 1.2.1
  * @link https://ilaozhu.com/archives/2068/
  */
 class Plugin implements PluginInterface
