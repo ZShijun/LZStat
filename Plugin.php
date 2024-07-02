@@ -20,7 +20,7 @@ use Widget\User;
  * 
  * @package LZStat 
  * @author laozhu
- * @version 1.2.1
+ * @version 1.2.2
  * @link https://ilaozhu.com/archives/2068/
  */
 class Plugin implements PluginInterface
@@ -226,7 +226,7 @@ class Plugin implements PluginInterface
                 }  
                 delay = true;
                 const cid = event.target.dataset.cid;
-                axios.get('/action/stat?do=' + type + '&cid='+cid)
+                axios.get('/index.php/action/stat?do=' + type + '&cid='+cid)
                 .then(function (response) {
                     const gets = document.querySelector('.get-' + type + '[data-cid="'+cid+'"]');
                     if (gets) {
