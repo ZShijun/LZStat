@@ -20,7 +20,7 @@ use Widget\User;
  * 
  * @package LZStat 
  * @author laozhu
- * @version 1.2.2
+ * @version 1.2.3
  * @link https://ilaozhu.com/archives/2068/
  */
 class Plugin implements PluginInterface
@@ -197,8 +197,13 @@ class Plugin implements PluginInterface
             }
         }
 
-        $select->where('table.contents.created < ?', Date::time())
-            ->order($plugin->orderBy, Db::SORT_DESC);
+        $select->where('table.contents.created < ?', Date::time());
+        if ($plugin->orderBy == 'weight') {
+            // typecho获取文章总数的逻辑有bug，为了不修改源码，暂时只能这么实现
+            $select->order('likesNum * 100 + viewsNum', Db::SORT_DESC);
+        } else {
+            $select->order($plugin->orderBy, Db::SORT_DESC);
+        }
         return $select;
     }
 
@@ -246,6 +251,7 @@ class Plugin implements PluginInterface
 
     /**
      * 获取榜单
+     * 
      * @param string $orderBy 排序方式(created,viewsNum,likesNum,weight)，为空则根据配置排序
      */
     public static function getRank(string $orderBy = null)
@@ -264,6 +270,7 @@ class Plugin implements PluginInterface
         Rank::alloc(['orderBy' => $orderBy])->to($posts);
         return [
             'title' => $title,
+            'orderBy' => $orderBy,
             'posts' => $posts
         ];
     }
