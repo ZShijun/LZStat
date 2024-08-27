@@ -20,7 +20,7 @@ use Widget\User;
  * 
  * @package LZStat 
  * @author laozhu
- * @version 1.2.3
+ * @version 1.3.0
  * @link https://ilaozhu.com/archives/2068/
  */
 class Plugin implements PluginInterface
@@ -64,18 +64,6 @@ class Plugin implements PluginInterface
      */
     public static function config(Form $form)
     {
-        $requireAxios = new Radio(
-            'requireAxios',
-            [
-                0    => _t('否'),
-                1    => _t('是')
-            ],
-            1,
-            _t('引入Axios'),
-            _t('如果项目中已存在Axios，请选择否，如果不存在或不确定，请选择是')
-        );
-        $form->addInput($requireAxios);
-
         /** 文章列表排序 */
         $orderBy = new Radio(
             'orderBy',
@@ -124,9 +112,7 @@ class Plugin implements PluginInterface
      *
      * @param Form $form
      */
-    public static function personalConfig(Form $form)
-    {
-    }
+    public static function personalConfig(Form $form) {}
 
     public static function addViews($archive)
     {
@@ -197,22 +183,13 @@ class Plugin implements PluginInterface
             }
         }
 
-        $select->where('table.contents.created < ?', Date::time());
-        if ($plugin->orderBy == 'weight') {
-            // typecho获取文章总数的逻辑有bug，为了不修改源码，暂时只能这么实现
-            $select->order('likesNum * 100 + viewsNum', Db::SORT_DESC);
-        } else {
-            $select->order($plugin->orderBy, Db::SORT_DESC);
-        }
+        $select->where('table.contents.created < ?', Date::time())
+            ->order($plugin->orderBy, Db::SORT_DESC);
         return $select;
     }
 
     public static function footer()
     {
-        if (Widget::widget(Options::class)->plugin('LZStat')->requireAxios) {
-            $axiosUrl = Common::url('LZStat/axios.min.js', Helper::options()->pluginUrl);
-            echo '<script src="' . $axiosUrl . '"></script>';
-        }
         echo <<<EOF
         <script>
             let delay = false;
@@ -231,19 +208,21 @@ class Plugin implements PluginInterface
                 }  
                 delay = true;
                 const cid = event.target.dataset.cid;
-                axios.get('/index.php/action/stat?do=' + type + '&cid='+cid)
-                .then(function (response) {
-                    const gets = document.querySelector('.get-' + type + '[data-cid="'+cid+'"]');
-                    if (gets) {
-                        gets.textContent = response.data.total;
-                    }
-                })
-                .catch(function (error) {
-                    console.log(error);
-                })
-                .finally(function () {
-                    delay = false;
-                });
+                const xhr = new XMLHttpRequest();
+                xhr.open('GET', '/index.php/action/stat?do=' + type + '&cid='+cid, true);
+                xhr.onload = function () {  
+                    if (xhr.status >= 200 && xhr.status < 300) {  
+                        const data = JSON.parse(xhr.responseText); 
+                        const gets = document.querySelector('.get-' + type + '[data-cid="'+cid+'"]');
+                        if (gets) {
+                            gets.textContent = data.total;
+                        } 
+                    } else {  
+                        console.error('请求失败: ' + xhr.statusText);  
+                    } 
+                    delay = false; 
+                };  
+                xhr.send();
             }
         </script>
         EOF;
@@ -251,26 +230,27 @@ class Plugin implements PluginInterface
 
     /**
      * 获取榜单
-     * 
      * @param string $orderBy 排序方式(created,viewsNum,likesNum,weight)，为空则根据配置排序
+     * @param string $title 标题
      */
-    public static function getRank(string $orderBy = null)
+    public static function getRank(string $orderBy = null, string $title = null)
     {
         if (!$orderBy) {
             $plugin = Widget::widget(Options::class)->plugin('LZStat');
             $orderBy = $plugin->topOrder;
         }
 
-        if ($orderBy == 'created') {
-            $title = _t('最新');
-        } else {
-            $title = _t('热门');
+        if (!$title) {
+            if ($orderBy == 'created') {
+                $title = _t('最新文章');
+            } else {
+                $title = _t('热门文章');
+            }
         }
 
         Rank::alloc(['orderBy' => $orderBy])->to($posts);
         return [
             'title' => $title,
-            'orderBy' => $orderBy,
             'posts' => $posts
         ];
     }
