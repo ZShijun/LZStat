@@ -183,8 +183,13 @@ class Plugin implements PluginInterface
             }
         }
 
-        $select->where('table.contents.created < ?', Date::time())
-            ->order($plugin->orderBy, Db::SORT_DESC);
+        $select->where('table.contents.created < ?', Date::time());
+        if ($plugin->orderBy == 'weight') {
+            // typecho获取文章总数的逻辑有bug，为了不修改源码，暂时只能这么实现
+            $select->order('likesNum * 100 + viewsNum', Db::SORT_DESC);
+        } else {
+            $select->order($plugin->orderBy, Db::SORT_DESC);
+        }
         return $select;
     }
 
@@ -230,27 +235,26 @@ class Plugin implements PluginInterface
 
     /**
      * 获取榜单
+     * 
      * @param string $orderBy 排序方式(created,viewsNum,likesNum,weight)，为空则根据配置排序
-     * @param string $title 标题
      */
-    public static function getRank(string $orderBy = null, string $title = null)
+    public static function getRank(string $orderBy = null)
     {
         if (!$orderBy) {
             $plugin = Widget::widget(Options::class)->plugin('LZStat');
             $orderBy = $plugin->topOrder;
         }
 
-        if (!$title) {
-            if ($orderBy == 'created') {
-                $title = _t('最新文章');
-            } else {
-                $title = _t('热门文章');
-            }
+        if ($orderBy == 'created') {
+            $title = _t('最新');
+        } else {
+            $title = _t('热门');
         }
 
         Rank::alloc(['orderBy' => $orderBy])->to($posts);
         return [
             'title' => $title,
+            'orderBy' => $orderBy,
             'posts' => $posts
         ];
     }
