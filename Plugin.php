@@ -271,12 +271,25 @@ class Plugin implements PluginInterface
         }
 
         $db = Db::get();
+        $isSqlite = false;
+        if (strstr($db->getAdapterName(), "SQLite")) {
+            $isSqlite = true;
+        }
         $tableName = $db->getPrefix() . 'contents';
         foreach ($fields as $key => $value) {
-            $sql = "SHOW COLUMNS FROM $tableName WHERE Field = '$key'";
+            $sql = "";
+            if ($isSqlite) {
+                $sql = "select * from sqlite_master where name='$tableName' and sql like '%$key%'";
+            } else {
+                $sql = "SHOW COLUMNS FROM $tableName WHERE Field = '$key'";
+            }
             $result = $db->query($sql);
             if ($result->rowCount() == 0) {
-                $db->query("ALTER TABLE $tableName ADD $key INT UNSIGNED NOT NULL COMMENT '$value' DEFAULT '0'");
+                if ($isSqlite) {
+                    $db->query("ALTER TABLE $tableName ADD $key INT UNSIGNED NOT NULL DEFAULT '0'");
+                } else {
+                    $db->query("ALTER TABLE $tableName ADD $key INT UNSIGNED NOT NULL COMMENT '$value' DEFAULT '0'");
+                }
             }
         }
     }
