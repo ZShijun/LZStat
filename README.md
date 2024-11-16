@@ -14,6 +14,8 @@
 - 实现榜单查询功能
 
 ## 插件安装
+> [!NOTE]
+> 确保 Typecho 版本至少为 1.3.0 (目前还是开发版)，否则会出现浏览量和点赞量无法显示的情况。
 
 1. 下载 [LZStat](https://github.com/ZShijun/LZStat) ，解压到 `usr/plugins/` 目录下，将文件夹命名为 `LZStat`，确保`Plugin.php`文件直接在`LZStat`文件夹下；
 2. 登录博客后台，进入`控制台`->`插件`，选择`LZStat`插件；
@@ -42,7 +44,7 @@
 然后，通过如下代码显示点赞量：
 
 ```php
-<?php $this->viewsNum(); ?>
+<?php $this->likesNum(); ?>
 ```
 
 当然，如果你点错了或者后悔了，再次点击，就会取消点赞，即点赞数减一。
